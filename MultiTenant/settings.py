@@ -5,10 +5,30 @@ DEBUG = True
 ALLOWED_HOSTS = []
 from datetime import timedelta
 
+SHARED_APPS = (
+    'tenant_schemas',  # mandatory, should always be before any django app
+    'organizations', # you must list the app where your tenant model resides in
 
+    'django.contrib.contenttypes',
+
+    # everything below here is optional
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+    'django.contrib.messages',
+    'django.contrib.admin',
+)
+
+TENANT_APPS = (
+    'django.contrib.contenttypes',
+
+    # your tenant-specific apps
+    # 'myapp.hotels',
+    # 'myapp.houses',
+)
 # Application definition
 LOCAL_APPS = [
-
+    # 'organizations'
 ]
 
 THIRD_PARTY_APPS = [
@@ -25,6 +45,9 @@ THIRD_PARTY_APPS = [
 ]
 
 DEFAULT_APPS = [
+    'tenant_schemas',  # mandatory, should always be before any django app
+
+    'organizations',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -32,6 +55,7 @@ DEFAULT_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'django.contrib.sites',
     
 ]
 INTERNAL_IPS = [
@@ -56,6 +80,9 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE = [
+    'tenant_schemas.middleware.TenantMiddleware',
+    'tenant_schemas.middleware.SuspiciousTenantMiddleware',
+    'tenant_schemas.middleware.DefaultTenantMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -84,12 +111,16 @@ TEMPLATES = [
         },
     },
 ]
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.core.context_processors.request',
+    #...
+)
 CRISPY_TEMPLATE_PACK = "bootstrap4"
 # CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 # CRISPY_TEMPLATE_PACK = "tailwind"
-
+TENANT_MODEL = "organizations.Client" # app.Model
 WSGI_APPLICATION = 'MultiTenant.wsgi.application'
-
+DEFAULT_FILE_STORAGE ='tenant_schemas.storage.TenantFileSystemStorage'
 # # Channels
 # ASGI_APPLICATION = 'MultiTenant.asgi.application'
 # CHANNEL_LAYERS = {
@@ -100,25 +131,26 @@ WSGI_APPLICATION = 'MultiTenant.wsgi.application'
 #         },
 #     },
 # }
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-}
-
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'USER': 'postgres',
-#         'PASSWORD':'postgres',
-#         'NAME': 'postgres',
-#         'HOST': 'db', # for docker
-#         # 'HOST': 'localhost', # fow without docker
-#         'PORT': 5432
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
 #     }
 # }
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'tenant_schemas.postgresql_backend',
+        'USER': 'postgres',
+        'PASSWORD':'postgres',
+        'NAME': 'ems_tenant',
+        'HOST': 'localhost',
+        'PORT': 5432
+    }
+}
+DATABASE_ROUTERS = (
+    'tenant_schemas.routers.TenantSyncRouter',
+)
 STATICFILES_STORAGE='whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 AUTH_PASSWORD_VALIDATORS = [
